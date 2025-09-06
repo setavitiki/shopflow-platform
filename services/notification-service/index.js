@@ -41,7 +41,7 @@ app.post('/notifications/send', (req, res) => {
   notifications.push(notification);
   
   // Simulate notification sending
-  console.log(`📧 Sending ${type} notification to user ${userId}: ${message}`);
+  console.log(`Sending ${type} notification to user ${userId}: ${message}`);
   
   res.json(notification);
 });
