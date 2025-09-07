@@ -1,4 +1,4 @@
-name: Microservices CI/CD
+name: Microservices CI/CD to EKS
 
 on:
   push:
@@ -16,7 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # packages: write     
     outputs:
       auth-service: ${{ steps.changes.outputs.auth-service }}
       product-service: ${{ steps.changes.outputs.product-service }}
@@ -50,6 +49,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+      
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
+      
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -68,204 +83,22 @@ jobs:
           cd services/auth-service
           npm test
       
-      - name: Build Docker image
+      - name: Login to Amazon ECR
         run: |
-          docker build -t auth-service:${{ github.sha }} -f services/auth-service/Dockerfile services/auth-service/
-      
-      - name: Log in to GitHub Container Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Push to registry
-        if: github.event_name != 'pull_request'
-        run: |
-          docker tag auth-service:${{ github.sha }} ghcr.io/${{ github.repository }}/auth-service:${{ github.sha }}
-          docker tag auth-service:${{ github.sha }} ghcr.io/${{ github.repository }}/auth-service:latest
-          docker push ghcr.io/${{ github.repository }}/auth-service:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository }}/auth-service:latest
-      
-      - name: Setup kubeconfig
-        env:
-          KUBECONFIG_BASE64: ${{ secrets.KUBECONFIG_BASE64 }}
-        run: |
-          echo "$KUBECONFIG_BASE64" | base64 --decode > kubeconfig
-          chmod 600 kubeconfig
-
-      - name: Deploy to development
-        run: |
-          kubectl --kubeconfig=kubeconfig apply -f k8s/auth-service.yaml
-            
-  build-product-service:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.product-service == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write     
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: services/product-service/package-lock.json
-      
-      - name: Install dependencies
-        run: |
-          cd services/product-service
-          npm install
-          npm ci
-      
-      - name: Run tests
-        run: |
-          cd services/product-service
-          npm test
-      
-      - name: Build Docker image
-        run: |
-          docker build -t product-service:${{ github.sha }} -f services/product-service/Dockerfile services/product-service/
-      
-      - name: Log in to GitHub Container Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Push to registry
-        if: github.event_name != 'pull_request'
-        run: |
-          docker tag product-service:${{ github.sha }} ghcr.io/${{ github.repository }}/product-service:${{ github.sha }}
-          docker tag product-service:${{ github.sha }} ghcr.io/${{ github.repository }}/product-service:latest
-          docker push ghcr.io/${{ github.repository }}/product-service:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository }}/product-service:latest
-
-  build-order-service:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.order-service == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: services/order-service/package-lock.json
-      
-      - name: Install dependencies
-        run: |
-          cd services/order-service
-          npm install
-          npm ci
-      
-      - name: Run tests
-        run: |
-          cd services/order-service
-          npm test
-      
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
       
       - name: Build and push Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/order-service:${{ github.sha }} \
-            -f services/order-service/Dockerfile services/order-service/
-          docker push ghcr.io/${{ github.repository }}/order-service:${{ github.sha }}
-
-  build-payment-service:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.payment-service == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/auth-service:${{ github.sha }} \
+            -f services/auth-service/Dockerfile services/auth-service/
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/auth-service:${{ github.sha }}
       
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: services/payment-service/package-lock.json
-      
-      - name: Install dependencies
+      - name: Deploy to development namespace
+        if: github.ref == 'refs/heads/develop'
         run: |
-          cd services/payment-service
-          npm install
-          npm ci
-      
-      - name: Run tests
-        run: |
-          cd services/payment-service
-          npm test
-      
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Build and push Docker image
-        run: |
-          docker build -t ghcr.io/${{ github.repository }}/payment-service:${{ github.sha }} \
-            -f services/payment-service/Dockerfile services/payment-service/
-          docker push ghcr.io/${{ github.repository }}/payment-service:${{ github.sha }}
-
-  build-notification-service:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.notification-service == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: services/notification-service/package-lock.json
-      
-      - name: Install dependencies
-        run: |
-          cd services/notification-service
-          npm install
-          npm ci
-      
-      - name: Run tests
-        run: |
-          cd services/notification-service
-          npm test
-      
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Build and push Docker image
-        run: |
-          docker build -t ghcr.io/${{ github.repository }}/notification-service:${{ github.sha }} \
-            -f services/notification-service/Dockerfile services/notification-service/
-          docker push ghcr.io/${{ github.repository }}/notification-service:${{ github.sha }}
+          kubectl create namespace ecommerce-dev --dry-run=client -o yaml | kubectl apply -f -
+          sed -e "s|:latest|:${{ github.sha }}|g" \
+              -e "s|namespace: ecommerce|namespace: ecommerce-dev|g" \
+              -e "s|ghcr.io.*|${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/auth-service:${{ github.sha }}|g" \
+              k8s/auth-service.yaml | kubectl apply -f -
+          kubectl rollout status deployment/auth-service -n ecommerce-dev
