@@ -14,7 +14,7 @@ on:
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
-    environment: production
+    # environment: production
     permissions:
       id-token: write
       contents: read
