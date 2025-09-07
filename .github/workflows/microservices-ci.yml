@@ -1,0 +1,255 @@
+name: Microservices CI/CD
+
+on:
+  push:
+    branches: [ develop, main ]
+    paths:
+      - 'services/**'
+  pull_request:
+    branches: [ develop, main ]
+    paths:
+      - 'services/**'
+  workflow_dispatch:
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # packages: write     
+    outputs:
+      auth-service: ${{ steps.changes.outputs.auth-service }}
+      product-service: ${{ steps.changes.outputs.product-service }}
+      order-service: ${{ steps.changes.outputs.order-service }}
+      payment-service: ${{ steps.changes.outputs.payment-service }}
+      notification-service: ${{ steps.changes.outputs.notification-service }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            auth-service:
+              - 'services/auth-service/**'
+            product-service:
+              - 'services/product-service/**'
+            order-service:
+              - 'services/order-service/**'
+            payment-service:
+              - 'services/payment-service/**'
+            notification-service:
+              - 'services/notification-service/**'
+
+  build-auth-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.auth-service == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write     
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: services/auth-service/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd services/auth-service
+          npm ci
+      
+      - name: Run tests
+        run: |
+          cd services/auth-service
+          npm test
+      
+      - name: Build Docker image
+        run: |
+          docker build -t auth-service:${{ github.sha }} -f services/auth-service/Dockerfile services/auth-service/
+      
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Push to registry
+        if: github.event_name != 'pull_request'
+        run: |
+          docker tag auth-service:${{ github.sha }} ghcr.io/${{ github.repository }}/auth-service:${{ github.sha }}
+          docker tag auth-service:${{ github.sha }} ghcr.io/${{ github.repository }}/auth-service:latest
+          docker push ghcr.io/${{ github.repository }}/auth-service:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository }}/auth-service:latest
+
+  build-product-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.product-service == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write     
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: services/product-service/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd services/product-service
+          npm ci
+      
+      - name: Run tests
+        run: |
+          cd services/product-service
+          npm test
+      
+      - name: Build Docker image
+        run: |
+          docker build -t product-service:${{ github.sha }} -f services/product-service/Dockerfile services/product-service/
+      
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Push to registry
+        if: github.event_name != 'pull_request'
+        run: |
+          docker tag product-service:${{ github.sha }} ghcr.io/${{ github.repository }}/product-service:${{ github.sha }}
+          docker tag product-service:${{ github.sha }} ghcr.io/${{ github.repository }}/product-service:latest
+          docker push ghcr.io/${{ github.repository }}/product-service:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository }}/product-service:latest
+
+  build-order-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.order-service == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: services/order-service/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd services/order-service
+          npm ci
+      
+      - name: Run tests
+        run: |
+          cd services/order-service
+          npm test
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/order-service:${{ github.sha }} \
+            -f services/order-service/Dockerfile services/order-service/
+          docker push ghcr.io/${{ github.repository }}/order-service:${{ github.sha }}
+
+  build-payment-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.payment-service == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: services/payment-service/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd services/payment-service
+          npm ci
+      
+      - name: Run tests
+        run: |
+          cd services/payment-service
+          npm test
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/payment-service:${{ github.sha }} \
+            -f services/payment-service/Dockerfile services/payment-service/
+          docker push ghcr.io/${{ github.repository }}/payment-service:${{ github.sha }}
+
+  build-notification-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.notification-service == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: services/notification-service/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd services/notification-service
+          npm ci
+      
+      - name: Run tests
+        run: |
+          cd services/notification-service
+          npm test
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/notification-service:${{ github.sha }} \
+            -f services/notification-service/Dockerfile services/notification-service/
+          docker push ghcr.io/${{ github.repository }}/notification-service:${{ github.sha }}

@@ -60,3 +60,4 @@ app.get('/notifications/:userId', (req, res) => {
 app.listen(port, () => {
   console.log(`Notification service running on port ${port}`);
 });
+// Test notification pipeline Sun Sep  7 08:52:57 AM UTC 2025

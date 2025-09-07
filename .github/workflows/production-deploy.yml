@@ -1,0 +1,74 @@
+name: Production Deployment
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write      
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract tag version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: Build and push production images
+        run: |
+          # Build all services with production tag
+          docker build -t ghcr.io/${{ github.repository }}/auth-service:${{ steps.version.outputs.VERSION }} \
+            -f services/auth-service/Dockerfile services/auth-service/
+          docker build -t ghcr.io/${{ github.repository }}/product-service:${{ steps.version.outputs.VERSION }} \
+            -f services/product-service/Dockerfile services/product-service/
+          docker build -t ghcr.io/${{ github.repository }}/order-service:${{ steps.version.outputs.VERSION }} \
+            -f services/order-service/Dockerfile services/order-service/
+          docker build -t ghcr.io/${{ github.repository }}/payment-service:${{ steps.version.outputs.VERSION }} \
+            -f services/payment-service/Dockerfile services/payment-service/
+          docker build -t ghcr.io/${{ github.repository }}/notification-service:${{ steps.version.outputs.VERSION }} \
+            -f services/notification-service/Dockerfile services/notification-service/
+          
+          # Push all images
+          docker push ghcr.io/${{ github.repository }}/auth-service:${{ steps.version.outputs.VERSION }}
+          docker push ghcr.io/${{ github.repository }}/product-service:${{ steps.version.outputs.VERSION }}
+          docker push ghcr.io/${{ github.repository }}/order-service:${{ steps.version.outputs.VERSION }}
+          docker push ghcr.io/${{ github.repository }}/payment-service:${{ steps.version.outputs.VERSION }}
+          docker push ghcr.io/${{ github.repository }}/notification-service:${{ steps.version.outputs.VERSION }}
+      
+      - name: Deploy to production namespace
+        run: |
+          # Update Kubernetes deployments with new image tags
+          kubectl create namespace ecommerce-prod --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Update image tags in manifests and apply
+          sed "s|:latest|:${{ steps.version.outputs.VERSION }}|g" k8s/auth-service.yaml | \
+            sed "s|namespace: ecommerce|namespace: ecommerce-prod|g" | kubectl apply -f -
+          sed "s|:latest|:${{ steps.version.outputs.VERSION }}|g" k8s/product-service.yaml | \
+            sed "s|namespace: ecommerce|namespace: ecommerce-prod|g" | kubectl apply -f -
+          # Add other services...
+          
+          # Wait for rollout to complete
+          kubectl rollout status deployment/auth-service -n ecommerce-prod
+          kubectl rollout status deployment/product-service -n ecommerce-prod
+      
+      - name: Verify deployment
+        run: |
+          echo "Production deployment completed for version ${{ steps.version.outputs.VERSION }}"
+          kubectl get pods -n ecommerce-prod
