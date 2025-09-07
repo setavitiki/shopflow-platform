@@ -63,4 +63,6 @@ app.post('/orders', (req, res) => {
 
 app.listen(port, () => {
   console.log(`Order service running on port ${port}`);
+
 });// Test order pipeline Sun Sep  7 08:49:29 AM UTC 2025
+});
