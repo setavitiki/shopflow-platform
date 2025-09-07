@@ -61,6 +61,7 @@ jobs:
         run: |
           cd services/auth-service
           npm install
+          npm ci
       
       - name: Run tests
         run: |
@@ -108,6 +109,7 @@ jobs:
         run: |
           cd services/product-service
           npm install
+          npm ci
       
       - name: Run tests
         run: |
@@ -155,6 +157,7 @@ jobs:
         run: |
           cd services/order-service
           npm install
+          npm ci
       
       - name: Run tests
         run: |
@@ -195,6 +198,7 @@ jobs:
         run: |
           cd services/payment-service
           npm install
+          npm ci
       
       - name: Run tests
         run: |
@@ -235,6 +239,7 @@ jobs:
         run: |
           cd services/notification-service
           npm install
+          npm ci
       
       - name: Run tests
         run: |
