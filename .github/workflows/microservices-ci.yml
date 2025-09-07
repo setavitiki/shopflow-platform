@@ -87,7 +87,18 @@ jobs:
           docker tag auth-service:${{ github.sha }} ghcr.io/${{ github.repository }}/auth-service:latest
           docker push ghcr.io/${{ github.repository }}/auth-service:${{ github.sha }}
           docker push ghcr.io/${{ github.repository }}/auth-service:latest
+      
+      - name: Setup kubeconfig
+        env:
+          KUBECONFIG_BASE64: ${{ secrets.KUBECONFIG_BASE64 }}
+        run: |
+          echo "$KUBECONFIG_BASE64" | base64 --decode > kubeconfig
+          chmod 600 kubeconfig
 
+      - name: Deploy to development
+        run: |
+          kubectl --kubeconfig=kubeconfig apply -f k8s/auth-service.yaml
+            
   build-product-service:
     needs: detect-changes
     if: needs.detect-changes.outputs.product-service == 'true'
