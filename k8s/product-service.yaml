@@ -16,21 +16,35 @@ spec:
       containers:
       - name: product-service
         image: product-service:latest
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 4000
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 4000
-          initialDelaySeconds: 10
-          periodSeconds: 10
+        env:
+        - name: PORT
+          value: "4000"
         readinessProbe:
           httpGet:
             path: /health
             port: 4000
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 4000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
 ---
 apiVersion: v1
 kind: Service
@@ -41,5 +55,7 @@ spec:
   selector:
     app: product-service
   ports:
-  - port: 4000
+  - protocol: TCP
+    port: 4000
     targetPort: 4000
+  type: ClusterIP
