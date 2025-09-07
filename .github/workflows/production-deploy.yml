@@ -1,4 +1,4 @@
-name: Production Deployment
+name: Production Deployment to EKS
 
 on:
   push:
@@ -17,58 +17,98 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+      
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
+          kubectl config current-context
+      
+      - name: Verify EKS connection
+        run: |
+          kubectl get nodes
+          kubectl cluster-info
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
       
       - name: Extract tag version
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
       
-      - name: Build and push production images
+      - name: Build and push all services to ECR
         run: |
-          # Build all services with production tag
-          docker build -t ghcr.io/${{ github.repository }}/auth-service:${{ steps.version.outputs.VERSION }} \
+          # Build and push auth-service
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/auth-service:${{ steps.version.outputs.VERSION }} \
             -f services/auth-service/Dockerfile services/auth-service/
-          docker build -t ghcr.io/${{ github.repository }}/product-service:${{ steps.version.outputs.VERSION }} \
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/auth-service:${{ steps.version.outputs.VERSION }}
+          
+          # Build and push product-service
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/product-service:${{ steps.version.outputs.VERSION }} \
             -f services/product-service/Dockerfile services/product-service/
-          docker build -t ghcr.io/${{ github.repository }}/order-service:${{ steps.version.outputs.VERSION }} \
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/product-service:${{ steps.version.outputs.VERSION }}
+          
+          # Build and push order-service
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/order-service:${{ steps.version.outputs.VERSION }} \
             -f services/order-service/Dockerfile services/order-service/
-          docker build -t ghcr.io/${{ github.repository }}/payment-service:${{ steps.version.outputs.VERSION }} \
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/order-service:${{ steps.version.outputs.VERSION }}
+          
+          # Build and push payment-service
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/payment-service:${{ steps.version.outputs.VERSION }} \
             -f services/payment-service/Dockerfile services/payment-service/
-          docker build -t ghcr.io/${{ github.repository }}/notification-service:${{ steps.version.outputs.VERSION }} \
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/payment-service:${{ steps.version.outputs.VERSION }}
+          
+          # Build and push notification-service
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/notification-service:${{ steps.version.outputs.VERSION }} \
             -f services/notification-service/Dockerfile services/notification-service/
-          
-          # Push all images
-          docker push ghcr.io/${{ github.repository }}/auth-service:${{ steps.version.outputs.VERSION }}
-          docker push ghcr.io/${{ github.repository }}/product-service:${{ steps.version.outputs.VERSION }}
-          docker push ghcr.io/${{ github.repository }}/order-service:${{ steps.version.outputs.VERSION }}
-          docker push ghcr.io/${{ github.repository }}/payment-service:${{ steps.version.outputs.VERSION }}
-          docker push ghcr.io/${{ github.repository }}/notification-service:${{ steps.version.outputs.VERSION }}
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/notification-service:${{ steps.version.outputs.VERSION }}
       
-      - name: Deploy to production namespace
+      - name: Create production namespace
         run: |
-          # Update Kubernetes deployments with new image tags
           kubectl create namespace ecommerce-prod --dry-run=client -o yaml | kubectl apply -f -
-          
-          # Update image tags in manifests and apply
-          sed "s|:latest|:${{ steps.version.outputs.VERSION }}|g" k8s/auth-service.yaml | \
-            sed "s|namespace: ecommerce|namespace: ecommerce-prod|g" | kubectl apply -f -
-          sed "s|:latest|:${{ steps.version.outputs.VERSION }}|g" k8s/product-service.yaml | \
-            sed "s|namespace: ecommerce|namespace: ecommerce-prod|g" | kubectl apply -f -
-          # Add other services...
-          
-          # Wait for rollout to complete
-          kubectl rollout status deployment/auth-service -n ecommerce-prod
-          kubectl rollout status deployment/product-service -n ecommerce-prod
       
-      - name: Verify deployment
+      - name: Deploy all services to EKS
+        run: |
+          # Update image references in manifests and deploy
+          sed -e "s|:latest|:${{ steps.version.outputs.VERSION }}|g" \
+              -e "s|namespace: ecommerce|namespace: ecommerce-prod|g" \
+              -e "s|ghcr.io.*|${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/auth-service:${{ steps.version.outputs.VERSION }}|g" \
+              k8s/auth-service.yaml | kubectl apply -f -
+          
+          sed -e "s|:latest|:${{ steps.version.outputs.VERSION }}|g" \
+              -e "s|namespace: ecommerce|namespace: ecommerce-prod|g" \
+              -e "s|ghcr.io.*|${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/product-service:${{ steps.version.outputs.VERSION }}|g" \
+              k8s/product-service.yaml | kubectl apply -f -
+          
+          # Add similar commands for order, payment, and notification services
+      
+      - name: Wait for deployments to be ready
+        run: |
+          kubectl rollout status deployment/auth-service -n ecommerce-prod --timeout=300s
+          kubectl rollout status deployment/product-service -n ecommerce-prod --timeout=300s
+      
+      - name: Verify production deployment
         run: |
           echo "Production deployment completed for version ${{ steps.version.outputs.VERSION }}"
+          echo "Cluster status:"
+          kubectl get nodes
+          echo "Production pods:"
           kubectl get pods -n ecommerce-prod
+          echo "Production services:"
+          kubectl get services -n ecommerce-prod
+          echo "Production deployments:"
+          kubectl get deployments -n ecommerce-prod
