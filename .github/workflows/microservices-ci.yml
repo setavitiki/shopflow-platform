@@ -14,6 +14,9 @@ on:
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write     
     outputs:
       auth-service: ${{ steps.changes.outputs.auth-service }}
       product-service: ${{ steps.changes.outputs.product-service }}
@@ -41,6 +44,9 @@ jobs:
     needs: detect-changes
     if: needs.detect-changes.outputs.auth-service == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write     
     steps:
       - uses: actions/checkout@v4
       
@@ -85,6 +91,9 @@ jobs:
     needs: detect-changes
     if: needs.detect-changes.outputs.product-service == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write     
     steps:
       - uses: actions/checkout@v4
       
