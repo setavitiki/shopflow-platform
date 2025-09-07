@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     permissions:
+      id-token: write
       contents: read
     outputs:
       auth-service: ${{ steps.changes.outputs.auth-service }}
