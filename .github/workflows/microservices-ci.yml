@@ -85,6 +85,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd services/auth-service
+          npm install
           npm ci
       
       - name: Run tests
@@ -148,6 +149,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd services/product-service
+          npm install
           npm ci
       
       - name: Run tests
@@ -211,6 +213,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd services/order-service
+          npm install
           npm ci
       
       - name: Run tests
@@ -274,6 +277,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd services/payment-service
+          npm install
           npm ci
       
       - name: Run tests
@@ -337,6 +341,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd services/notification-service
+          npm install
           npm ci
       
       - name: Run tests
