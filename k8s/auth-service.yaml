@@ -16,24 +16,33 @@ spec:
       containers:
       - name: auth-service
         image: auth-service:latest
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 4000
         env:
+        - name: PORT
+          value: "4000"
         - name: JWT_SECRET
-          value: "dev-jwt-secret-key"
+          value: "production-jwt-secret"
         livenessProbe:
           httpGet:
             path: /health
             port: 4000
-          initialDelaySeconds: 10
+          initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /health
             port: 4000
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
 ---
 apiVersion: v1
 kind: Service
