@@ -1,0 +1,27 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: ecommerce-prod
+spec:
+  mtls:
+    mode: STRICT  # Enforces mTLS for all services
+
+---
+
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: auth-policy
+  namespace: ecommerce-prod
+spec:
+  selector:
+    matchLabels:
+      app: auth-service
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/ecommerce-prod/sa/default"]
+  - to:
+    - operation:
+        methods: ["GET", "POST"]
