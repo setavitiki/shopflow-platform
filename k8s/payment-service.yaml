@@ -13,10 +13,12 @@ spec:
       labels:
         app: payment-service
     spec:
+      imagePullSecrets:
+      - name: regcred    
       containers:
       - name: payment-service
         image: payment-service:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - containerPort: 4000
         env:
