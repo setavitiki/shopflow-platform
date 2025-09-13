@@ -1,13 +1,13 @@
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: ecommerce-virtualservice
-  namespace: ecommerce-prod
+  name: shopflow-virtualservice
+  namespace: shopflow-prod
 spec:
   hosts:
   - "*"
   gateways:
-  - istio-system/ecommerce-gateway
+  - istio-system/shopflow-gateway
   http:
   # Route to auth service
   - match:

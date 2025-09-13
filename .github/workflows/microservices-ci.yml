@@ -99,19 +99,19 @@ jobs:
       
       - name: Build and push Docker image
         run: |
-          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/auth-service:${{ github.sha }} \
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/auth-service:${{ github.sha }} \
             -f services/auth-service/Dockerfile services/auth-service/
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/auth-service:${{ github.sha }}
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/auth-service:${{ github.sha }}
       
       - name: Deploy to development namespace
         if: github.ref == 'refs/heads/develop'
         run: |
-          kubectl create namespace ecommerce-dev --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace shopflow-dev --dry-run=client -o yaml | kubectl apply -f -
           sed -e "s|:latest|:${{ github.sha }}|g" \
-              -e "s|namespace: ecommerce|namespace: ecommerce-dev|g" \
-              -e "s|ghcr.io.*|${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/auth-service:${{ github.sha }}|g" \
+              -e "s|namespace: shopflow|namespace: shopflow-dev|g" \
+              -e "s|ghcr.io.*|${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/auth-service:${{ github.sha }}|g" \
               k8s/auth-service.yaml | kubectl apply -f -
-          kubectl rollout status deployment/auth-service -n ecommerce-dev
+          kubectl rollout status deployment/auth-service -n shopflow-dev
 
   build-product-service:
     needs: detect-changes
@@ -163,19 +163,19 @@ jobs:
       
       - name: Build and push Docker image
         run: |
-          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/product-service:${{ github.sha }} \
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/product-service:${{ github.sha }} \
             -f services/product-service/Dockerfile services/product-service/
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/product-service:${{ github.sha }}
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/product-service:${{ github.sha }}
       
       - name: Deploy to development namespace
         if: github.ref == 'refs/heads/develop'
         run: |
-          kubectl create namespace ecommerce-dev --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace shopflow-dev --dry-run=client -o yaml | kubectl apply -f -
           sed -e "s|:latest|:${{ github.sha }}|g" \
-              -e "s|namespace: ecommerce|namespace: ecommerce-dev|g" \
-              -e "s|ghcr.io.*|${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/product-service:${{ github.sha }}|g" \
+              -e "s|namespace: shopflow|namespace: shopflow-dev|g" \
+              -e "s|ghcr.io.*|${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/product-service:${{ github.sha }}|g" \
               k8s/product-service.yaml | kubectl apply -f -
-          kubectl rollout status deployment/product-service -n ecommerce-dev
+          kubectl rollout status deployment/product-service -n shopflow-dev
 
   build-order-service:
     needs: detect-changes
@@ -227,19 +227,19 @@ jobs:
       
       - name: Build and push Docker image
         run: |
-          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/order-service:${{ github.sha }} \
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/order-service:${{ github.sha }} \
             -f services/order-service/Dockerfile services/order-service/
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/order-service:${{ github.sha }}
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/order-service:${{ github.sha }}
       
       - name: Deploy to development namespace
         if: github.ref == 'refs/heads/develop'
         run: |
-          kubectl create namespace ecommerce-dev --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace shopflow-dev --dry-run=client -o yaml | kubectl apply -f -
           sed -e "s|:latest|:${{ github.sha }}|g" \
-              -e "s|namespace: ecommerce|namespace: ecommerce-dev|g" \
-              -e "s|ghcr.io.*|${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/order-service:${{ github.sha }}|g" \
+              -e "s|namespace: shopflow|namespace: shopflow-dev|g" \
+              -e "s|ghcr.io.*|${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/order-service:${{ github.sha }}|g" \
               k8s/order-service.yaml | kubectl apply -f -
-          kubectl rollout status deployment/order-service -n ecommerce-dev
+          kubectl rollout status deployment/order-service -n shopflow-dev
 
   build-payment-service:
     needs: detect-changes
@@ -291,19 +291,19 @@ jobs:
       
       - name: Build and push Docker image
         run: |
-          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/payment-service:${{ github.sha }} \
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/payment-service:${{ github.sha }} \
             -f services/payment-service/Dockerfile services/payment-service/
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/payment-service:${{ github.sha }}
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/payment-service:${{ github.sha }}
       
       - name: Deploy to development namespace
         if: github.ref == 'refs/heads/develop'
         run: |
-          kubectl create namespace ecommerce-dev --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace shopflow-dev --dry-run=client -o yaml | kubectl apply -f -
           sed -e "s|:latest|:${{ github.sha }}|g" \
-              -e "s|namespace: ecommerce|namespace: ecommerce-dev|g" \
-              -e "s|ghcr.io.*|${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/payment-service:${{ github.sha }}|g" \
+              -e "s|namespace: shopflow|namespace: shopflow-dev|g" \
+              -e "s|ghcr.io.*|${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/payment-service:${{ github.sha }}|g" \
               k8s/payment-service.yaml | kubectl apply -f -
-          kubectl rollout status deployment/payment-service -n ecommerce-dev
+          kubectl rollout status deployment/payment-service -n shopflow-dev
 
   build-notification-service:
     needs: detect-changes
@@ -355,16 +355,16 @@ jobs:
       
       - name: Build and push Docker image
         run: |
-          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/notification-service:${{ github.sha }} \
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/notification-service:${{ github.sha }} \
             -f services/notification-service/Dockerfile services/notification-service/
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/notification-service:${{ github.sha }}
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/notification-service:${{ github.sha }}
       
       - name: Deploy to development namespace
         if: github.ref == 'refs/heads/develop'
         run: |
-          kubectl create namespace ecommerce-dev --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace shopflow-dev --dry-run=client -o yaml | kubectl apply -f -
           sed -e "s|:latest|:${{ github.sha }}|g" \
-              -e "s|namespace: ecommerce|namespace: ecommerce-dev|g" \
-              -e "s|ghcr.io.*|${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/notification-service:${{ github.sha }}|g" \
+              -e "s|namespace: shopflow|namespace: shopflow-dev|g" \
+              -e "s|ghcr.io.*|${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/notification-service:${{ github.sha }}|g" \
               k8s/notification-service.yaml | kubectl apply -f -
-          kubectl rollout status deployment/notification-service -n ecommerce-dev
+          kubectl rollout status deployment/notification-service -n shopflow-dev

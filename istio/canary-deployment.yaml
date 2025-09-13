@@ -2,7 +2,7 @@ apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
   name: auth-canary
-  namespace: ecommerce-prod
+  namespace: shopflow-prod
 spec:
   hosts:
   - auth-service
@@ -21,7 +21,7 @@ apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
 metadata:
   name: auth-destination
-  namespace: ecommerce-prod
+  namespace: shopflow-prod
 spec:
   host: auth-service
   subsets:
