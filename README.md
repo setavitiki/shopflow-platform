@@ -1,4 +1,4 @@
-# Cloud-Native E-commerce Microservices Platform
+# Cloud-Native ShopFlow Microservices Platform Platform
 
 [![AWS EKS](https://img.shields.io/badge/AWS-EKS-orange.svg)](https://aws.amazon.com/eks/)
 [![Istio](https://img.shields.io/badge/Service%20Mesh-Istio-blue.svg)](https://istio.io/)
@@ -102,7 +102,7 @@ git >= 2.30
 ```bash
 # Create production-ready EKS cluster
 eksctl create cluster \
-  --name ecommerce-cluster \
+  --name shopflow-cluster \
   --region ap-south-1 \
   --nodes 2 \
   --node-type t3.medium \
@@ -123,7 +123,7 @@ services=("auth-service" "product-service" "order-service" "payment-service" "no
 
 for service in "${services[@]}"; do
   aws ecr create-repository \
-    --repository-name ecommerce/$service \
+    --repository-name shopflow/$service \
     --region ap-south-1 \
     --image-scanning-configuration scanOnPush=true
   echo "Created repository for $service"
@@ -143,13 +143,13 @@ Navigate to your repository → Settings → Secrets and variables → Actions
 - `AWS_SECRET_ACCESS_KEY`: Corresponding secret access key
 - `AWS_REGION`: ap-south-1 (or your chosen region)
 - `AWS_ACCOUNT_ID`: Your 12-digit AWS account identifier
-- `EKS_CLUSTER_NAME`: ecommerce-cluster
+- `EKS_CLUSTER_NAME`: shopflow-cluster
 
 #### 2.2 Initial Deployment
 ```bash
 # Clone and setup repository
 git clone <your-repository-url>
-cd cloudnative-ecommerce
+cd shopflow-platform
 
 # Create initial commit and push
 git add .
@@ -179,13 +179,13 @@ kubectl get pods -n istio-system
 #### 3.2 Service Mesh Integration
 ```bash
 # Enable automatic sidecar injection
-kubectl label namespace ecommerce-prod istio-injection=enabled
+kubectl label namespace shopflow-prod istio-injection=enabled
 
 # Restart deployments to inject Envoy sidecars
-kubectl rollout restart deployment -n ecommerce-prod
+kubectl rollout restart deployment -n shopflow-prod
 
 # Verify sidecar injection (should show 2/2 containers)
-kubectl get pods -n ecommerce-prod
+kubectl get pods -n shopflow-prod
 ```
 
 #### 3.3 Traffic Management Configuration
@@ -202,7 +202,7 @@ echo "Application accessible at: http://$INGRESS_HOST"
 ## Project Structure
 
 ```
-cloudnative-ecommerce/
+shopflow-platform/
 ├── services/                           # Microservices source code
 │   ├── auth-service/
 │   │   ├── src/
@@ -258,10 +258,10 @@ Extract Version → Build All Services → Push to ECR → Deploy to Production 
 istioctl dashboard kiali
 
 # Monitor service health
-kubectl get pods -n ecommerce-prod -w
+kubectl get pods -n shopflow-prod -w
 
 # View service logs
-kubectl logs -f deployment/auth-service -n ecommerce-prod
+kubectl logs -f deployment/auth-service -n shopflow-prod
 
 # Check service mesh proxy status
 istioctl proxy-status
@@ -270,10 +270,10 @@ istioctl proxy-status
 ### Scaling Operations
 ```bash
 # Scale individual services
-kubectl scale deployment auth-service --replicas=3 -n ecommerce-prod
+kubectl scale deployment auth-service --replicas=3 -n shopflow-prod
 
 # Scale cluster nodes (when needed)
-eksctl scale nodegroup --cluster ecommerce-cluster --name <nodegroup-name> --nodes 3
+eksctl scale nodegroup --cluster shopflow-cluster --name <nodegroup-name> --nodes 3
 ```
 
 ### Traffic Testing
@@ -334,11 +334,11 @@ done
 ### Service Health Verification
 ```bash
 # Verify all pods are running with sidecars
-kubectl get pods -n ecommerce-prod
+kubectl get pods -n shopflow-prod
 # Expected: Each pod shows 2/2 (application + Envoy proxy)
 
 # Test internal service communication
-kubectl exec -it <pod-name> -n ecommerce-prod -- curl http://product-service:4000/health
+kubectl exec -it <pod-name> -n shopflow-prod -- curl http://product-service:4000/health
 
 # Validate external access through Istio Gateway
 curl -I http://$INGRESS_HOST/products
@@ -348,10 +348,10 @@ curl -I http://$INGRESS_HOST/products
 ### Service Mesh Validation
 ```bash
 # Check Istio configuration status
-istioctl analyze -n ecommerce-prod
+istioctl analyze -n shopflow-prod
 
 # Verify traffic routing rules
-kubectl get gateway,virtualservice -n ecommerce-prod
+kubectl get gateway,virtualservice -n shopflow-prod
 
 # Monitor traffic in Kiali dashboard
 istioctl dashboard kiali

@@ -2,7 +2,7 @@ apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
 metadata:
   name: payment-circuit-breaker
-  namespace: ecommerce-prod
+  namespace: shopflow-prod
 spec:
   host: payment-service
   trafficPolicy:

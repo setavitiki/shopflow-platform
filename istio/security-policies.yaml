@@ -2,7 +2,7 @@ apiVersion: security.istio.io/v1beta1
 kind: PeerAuthentication
 metadata:
   name: default
-  namespace: ecommerce-prod
+  namespace: shopflow-prod
 spec:
   mtls:
     mode: STRICT  # Enforces mTLS for all services
@@ -13,7 +13,7 @@ apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
   name: auth-policy
-  namespace: ecommerce-prod
+  namespace: shopflow-prod
 spec:
   selector:
     matchLabels:
@@ -21,7 +21,7 @@ spec:
   rules:
   - from:
     - source:
-        principals: ["cluster.local/ns/ecommerce-prod/sa/default"]
+        principals: ["cluster.local/ns/shopflow-prod/sa/default"]
   - to:
     - operation:
         methods: ["GET", "POST"]

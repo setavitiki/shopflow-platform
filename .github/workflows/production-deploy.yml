@@ -54,24 +54,24 @@ jobs:
           
           for service in "${services[@]}"; do
             echo "Building and pushing $service..."
-            docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/$service:${{ steps.version.outputs.VERSION }} \
+            docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/$service:${{ steps.version.outputs.VERSION }} \
               -f services/$service/Dockerfile services/$service/
-            docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/$service:${{ steps.version.outputs.VERSION }}
+            docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/$service:${{ steps.version.outputs.VERSION }}
           done
       
       - name: Create production namespace and ECR secret
         run: |
           # Create production namespace
-          kubectl create namespace ecommerce-prod --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace shopflow-prod --dry-run=client -o yaml | kubectl apply -f -
           
           # Create ECR image pull secret in production namespace
-          kubectl delete secret regcred -n ecommerce-prod --ignore-not-found
+          kubectl delete secret regcred -n shopflow-prod --ignore-not-found
           kubectl create secret docker-registry regcred \
             --docker-server=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com \
             --docker-username=AWS \
             --docker-password=$(aws ecr get-login-password --region ${{ secrets.AWS_REGION }}) \
             --docker-email=admin@example.com \
-            --namespace ecommerce-prod
+            --namespace shopflow-prod
       
       - name: Deploy all services to EKS
         run: |
@@ -79,8 +79,8 @@ jobs:
           
           for service in "${services[@]}"; do
             echo "Deploying $service..."
-            sed -e "s|image: $service:latest|image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ecommerce/$service:${{ steps.version.outputs.VERSION }}|g" \
-                -e "s|namespace: ecommerce|namespace: ecommerce-prod|g" \
+            sed -e "s|image: $service:latest|image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/shopflow/$service:${{ steps.version.outputs.VERSION }}|g" \
+                -e "s|namespace: shopflow|namespace: shopflow-prod|g" \
                 k8s/$service.yaml | kubectl apply -f -
           done
       
@@ -90,7 +90,7 @@ jobs:
           
           for service in "${services[@]}"; do
             echo "Waiting for $service rollout..."
-            kubectl rollout status deployment/$service -n ecommerce-prod --timeout=300s
+            kubectl rollout status deployment/$service -n shopflow-prod --timeout=300s
           done
       
       - name: Verify production deployment
@@ -99,8 +99,8 @@ jobs:
           echo "Cluster status:"
           kubectl get nodes
           echo "Production pods:"
-          kubectl get pods -n ecommerce-prod
+          kubectl get pods -n shopflow-prod
           echo "Production services:"
-          kubectl get services -n ecommerce-prod
+          kubectl get services -n shopflow-prod
           echo "Production deployments:"
-          kubectl get deployments -n ecommerce-prod
+          kubectl get deployments -n shopflow-prod

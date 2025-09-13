@@ -2,7 +2,7 @@ apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
   name: product-fault-injection
-  namespace: ecommerce-prod
+  namespace: shopflow-prod
 spec:
   hosts:
   - product-service
