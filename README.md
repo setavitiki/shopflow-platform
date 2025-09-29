@@ -378,10 +378,8 @@ For questions about the implementation or discussions about cloud-native archite
 
 ## License
 
-This project is licensed under the GPL-3.0 license.
-
----
+This project is licensed under the MIT License.
 
 ## Author
 
-Shaun T
+**Shaun Tavitiki**  
